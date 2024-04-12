@@ -1,0 +1,10 @@
+---
+title: "Methodology Archive for R S"
+output: 
+  rmdformats::downcute:
+  css: my.css
+---
+
+# Section 1
+
+## Section 2
