@@ -1,0 +1,118 @@
+---
+title: "Methodology Archive for R S"
+author: "김태경 교수(경희대학교 빅데이터응용학과)"
+date: "`r Sys.Date()`"
+output: 
+  rmdformats::downcute:
+  css: my.css
+---
+
+[HOME](./index.html)
+
+# 텍스트 마이닝 {.tabset}
+
+## Word2Vec
+
+```{r, message=F,warning=F}
+library(word2vec)
+library(udpipe)
+```
+```{r, message=F, warning=F}
+library(udpipe)
+library(dplyr)
+library(DT)
+data(brussels_reviews_anno, package = "udpipe")
+
+```
+```{r}
+brussels_reviews_anno %>% top_n(50) %>%  DT::datatable()
+```
+
+
+```{r}
+
+x <- brussels_reviews_anno %>% 
+  filter(language == 'fr') %>% 
+  filter(grepl(xpos, pattern = paste(LETTERS, collapse = "|"))) %>% 
+  mutate(text=sprintf("%s/%s", lemma, xpos)) %>% 
+  filter(!is.na(lemma))
+
+x <- paste.data.frame(x, term = "text", group = "doc_id", collapse = " ")
+x_text <- x$text
+
+model <- word2vec(x = x_text, 
+                  dim = 15,  #dimension of the word vectors
+                  type = 'cbow', #or skip-gram
+                  iter = 20, #number of iteration, default = 5
+                  split = c(" ", ".\n?!")) #word, sentence
+
+```
+
+```{r}
+emb   <- as.matrix(model)
+nn    <- predict(model, c("cuisine/NN", "rencontrer/VB"), type = "nearest")
+nn
+nn    <- predict(model, c("accueillir/VBN", "accueillir/VBG"), type = "nearest")
+nn
+```
+
+```{r}
+predict(model,c('cuisine/NN','rencontrer/VB'),type='embedding')
+```
+
+## Python 한글 전처리
+
+* [PySpacing](./example-pykospacing)
+* [Py-Hansepll](./example-py-hanspell.html)
+* [NLTK 불용어](./nltk_okt.html)
+
+## 한글형태소(은전)
+
+RcppMecab과 RmecabKo 먼저 설치할 것.
+
+```{r, eval=FALSE}
+install.packages("RcppMecab")
+install.packages("RmecabKo")
+```
+
+다음과 같이 사전 데이터 저장
+
+```{r, eval=FALSE}
+RmecabKo::install_mecab('c:/mecab')
+```
+
+예
+
+```{r}
+library(RcppMeCab)
+library(dplyr)
+library(stringr)
+test <- c("대한민국은 민주공화국이다. 대한민국의 주권은 국민에게 있고, 모든 권력은 국민으로부터 나온다.")
+test %>% pos()
+
+test %>% 
+  pos(join = FALSE)
+
+test %>% 
+  RmecabKo::nouns()
+
+test %>% 
+  RmecabKo::token_words()
+
+test %>% 
+  RmecabKo::token_ngrams(n=2,
+               div=c('nouns'))
+
+test %>%
+  pos() %>% 
+  unlist() %>% 
+  .[!str_ends(.,'(JX|SF|EC)')] %>%
+  RmecabKo::token_ngrams(n=2)
+
+test %>% 
+  pos(format='data.frame')
+
+test %>% 
+  posParallel(format='data.frame')
+```
+

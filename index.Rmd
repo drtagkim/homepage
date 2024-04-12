@@ -1,10 +1,12 @@
 ---
 title: "Methodology Archive for R S"
+author: "김태경 교수(경희대학교 빅데이터응용학과)"
+date: "`r Sys.Date()`"
 output: 
   rmdformats::downcute:
   css: my.css
 ---
 
-# Section 1
+# 비정형 데이터
 
-## Section 2
+* [Text Mining](./index_text_mining.html)
