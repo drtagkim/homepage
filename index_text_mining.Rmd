@@ -11,7 +11,9 @@ output:
 
 # 텍스트 마이닝 {.tabset}
 
-## Word2Vec
+## Word Embedding
+
+### Word2Vec
 
 ```{r, message=F,warning=F}
 library(word2vec)
@@ -59,6 +61,59 @@ nn
 ```{r}
 predict(model,c('cuisine/NN','rencontrer/VB'),type='embedding')
 ```
+### WordVector
+
+다음으로 설치
+
+```
+remotes::install_github("bmschmidt/wordVectors")
+```
+
+```{r}
+library(wordVectors)
+```
+
+```{r}
+prep_word2vec(origin="cookbook",destination="cookbooks.txt",lowercase=T,bundle_ngrams=2)
+```
+
+```{r}
+model = train_word2vec("cookbooks.txt",
+               "cookbook_vectors.bin",
+               vectors=200,
+               threads=4,
+               window=12,
+               iter=5,
+               negative_samples=0)
+
+```
+
+```{r}
+model = read.vectors("cookbook_vectors.bin")
+```
+```{r}
+model %>% closest_to("fish")
+```
+
+```{r}
+some_fish = closest_to(model,model[[c("fish","salmon","trout","shad","flounder","carp","roe","eels")]],150)
+fishy = model[[some_fish$word,average=F]]
+plot(fishy,method="pca")
+```
+Clustering
+
+```{r}
+set.seed(10)
+centers = 150
+clustering = kmeans(model,centers=centers,iter.max = 40)
+```
+
+```{r}
+sapply(sample(1:centers,10),function(n) {
+  names(clustering$cluster[clustering$cluster==n][1:10])
+})
+```
+
 
 ## Python 한글 전처리
 

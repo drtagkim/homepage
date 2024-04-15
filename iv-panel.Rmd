@@ -1,0 +1,351 @@
+---
+title: "Panel Regression"
+output: html_notebook
+---
+
+패널 데이터 분석은 특정 그룹이나 집단을 대상으로 한 연구나 조사에서 얻은 데이터를 분석하는 과정을 말합니다. 이 그룹이나 집단을 패널이라고 부르며, 이들은 특정 기간 동안 일정한 주제나 목적을 위해 정보를 제공하기 위해 선택됩니다.
+
+패널 데이터 분석의 주요 특징은 다음과 같습니다:
+
+1. **지속적 추적**: 패널은 일정 기간 동안 일정한 주제나 목적을 위해 선택된 그룹이므로, 이들의 정보를 지속적으로 수집하고 분석합니다. 이는 해당 그룹의 행동이나 경향을 시간에 따라 추적하고 변화를 감지하는 데 유용합니다.
+
+2. **대표성**: 패널은 특정 대상을 대표하는 그룹으로 선택되기 때문에, 그룹이 전체 대상을 대표한다는 가정하에 분석됩니다. 이는 분석 결과를 전체 집단에 대해 일반화할 수 있는 신뢰성을 높입니다.
+
+3. **다변량 데이터**: 패널 데이터는 다양한 변수와 측정 지표를 포함하는 경우가 많습니다. 이는 특정 현상에 대한 다양한 측면을 고려하고 복잡한 관계를 분석하는 데 유용합니다.
+
+4. **시계열 분석**: 패널 데이터는 특정 그룹의 정보를 일정 기간 동안 지속적으로 수집하므로, 시간에 따른 변화를 분석하는 데 적합합니다. 이를 통해 트렌드를 파악하고 예측하는 데 활용할 수 있습니다.
+
+5. **효과적인 실험 설계**: 패널 데이터는 실험 설계에 활용될 수 있습니다. 예를 들어, 새로운 마케팅 전략이나 제품 변화에 대한 효과를 평가하기 위해 패널을 활용하여 실험을 설계하고 결과를 분석할 수 있습니다.
+
+이러한 특징들은 패널 데이터 분석이 다양한 분야에서 신뢰할 수 있는 정보를 제공하고 의사 결정에 도움을 줄 수 있도록 합니다.
+
+## Panel Regression 101
+
+### 라이브러리 불러오기
+
+```{r, message=FALSE}
+library(AER)
+library(plm)
+```
+
+이 R 코드는 먼저 `AER` 패키지와 `plm` 패키지를 로드합니다. 
+
+- `AER` 패키지는 Applied Econometrics with R(이 R을 활용한 응용 계량경제학)을 위한 패키지로, 다양한 계량경제학적 분석을 수행하는 데 사용됩니다.
+- `plm` 패키지는 패널 데이터를 처리하고 패널 데이터에 대한 선형 및 비선형 모델을 추정하는 데 사용됩니다.
+
+
+### Data
+
+```{r}
+data("Produc", package = "plm")
+summary(Produc)
+pdata <- pdata.frame(Produc, index = c("state", "year"))
+```
+이 R 코드는 `plm` 패키지에 내장된 `Produc` 데이터셋을 불러와서 요약하는 부분입니다. `Produc` 데이터셋은 미국의 주별 생산량 데이터입니다.
+
+그 다음으로는 패널 데이터를 다루기 위해 `pdata.frame()` 함수를 사용하여 `Produc` 데이터셋을 패널 데이터 프레임으로 변환합니다. 이때, `index` 매개변수를 사용하여 패널의 인덱스를 지정합니다. 여기서는 주(state)와 연도(year)가 패널의 인덱스로 지정되었습니다.
+
+이렇게 패널 데이터 프레임으로 변환하면 패널 데이터에 대한 다양한 패널 데이터 분석 기법을 적용할 수 있게 됩니다.
+
+### Effect Models
+
+```{r}
+fe_model <- plm(gsp ~ pcap + hwy + water + util, data = pdata, model = "within")
+re_model <- plm(gsp ~ pcap + hwy + water + util, data = pdata, model = "random")
+
+# Perform the Hausman test
+hausman_test <- phtest(fe_model, re_model)
+
+# Print the results of the Hausman test
+print(hausman_test)
+```
+
+이 코드는 패널 데이터를 이용하여 고정효과(fixed effects) 모형과 랜덤효과(random effects) 모형을 추정하고, 이 두 모형 간의 차이를 검정하는 Hausman 검정을 수행하는 예시입니다. `data` 매개변수에는 패널 데이터 프레임 `pdata`를 지정합니다.
+
+
+- `plm()` 함수를 사용하여 고정효과 모형(`fe_model`)과 랜덤효과 모형(`re_model`)을 각각 추정합니다. 여기서 
+
+  - `gsp`는 총주별 고정소득
+  - `pcap`은 개인 소비 지출
+  - `hwy`는 고속도로 소비
+  - `water`는 수송용수사용량
+  - `util`은 전기, 가스 및 수도 사용량
+  
+
+- `phtest()` 함수를 사용하여 Hausman 검정을 수행합니다. 이 함수는 고정효과 모형과 랜덤효과 모형 간의 차이가 있는지를 검정합니다.
+
+- 마지막으로 `print()` 함수를 사용하여 Hausman 검정의 결과를 출력합니다.
+
+이 코드는 패널 데이터를 사용하여 두 가지 다른 모형을 추정하고, 이 모형들 간의 적절성을 평가하는 방법을 보여줍니다.
+
+### Fixed Effect Vs. Random Effect
+
+랜덤효과 모형은 개체 간의 특성을 확률적으로 변화하는 것으로 가정하는 모형입니다. 이 모형은 개체의 특성이 개체 간에 랜덤하게 분포되어 있다고 가정합니다. 랜덤효과 모형은 고정효과 모형과 달리, 개체 간의 특성이 확률적으로 변화한다고 가정하여 개체 간의 차이를 분석합니다. 이 모형은 개체 특성 외에도 다른 요인들에 대한 효과를 고려할 수 있습니다. 랜덤효과 모형은 고정효과 모형보다 유연성이 높으며, 개체 특성 외에도 다른 요인들에 대한 효과를 고려할 수 있습니다. 하지만 랜덤효과 모형은 개체 간의 특성이 랜덤하게 분포된다는 가정에 따라 일부 제한이 있을 수 있습니다.
+
+랜덤 효과 모델은 개체 내부의 변화뿐만 아니라 개체 간의 차이도 고려합니다. 따라서 모델링할 때 개체 간의 변동성을 캡처할 수 있습니다. 랜덤 효과 모델은 개체의 특성이 개체 간에 랜덤하게 분포된다고 가정합니다. 즉, 개체 간의 특성이 표집된 표본의 일부에 불과하며, 모집단 전체의 특성을 대표한다고 보기 어렵습니다. 랜덤 효과 모델은 개체 간의 관측값이 서로 상관 관계가 있는 경우에도 적용될 수 있습니다. 이는 개체 간의 특성이 고정되어 있지 않기 때문에 가능합니다. 
+
+반면, 고정 효과 모델은 개체 간의 차이를 반영하여 분석합니다. 개체별로 고유한 특성이 존재하고 이러한 특성이 모델에 포함됩니다. 고정 효과 모델은 개체의 특성이 고정되어 있다고 가정합니다. 개체 간의 차이가 관측되는 것으로 간주되지만, 이러한 차이가 고정된 상태로 존재한다고 가정합니다. 고정 효과 모델은 시계열 데이터에서 주로 사용됩니다. 개체 간의 변동성을 포착하여 개체 간의 차이를 분석하는 데 적합합니다.
+
+Produc 데이터셋에는 다음과 같은 변수들이 있습니다:
+
+- `state`: 주(state)를 나타내는 변수
+- `year`: 연도(year)를 나타내는 변수
+- `gsp`: 총주별 고정소득(Gross State Product)
+- `pcap`: 개인 소비 지출(Personal Consumption Expenditures)
+- `hwy`: 고속도로 소비(Highway Expenditures)
+- `water`: 수송용수사용량(Water Consumption)
+- `util`: 전기, 가스 및 수도 사용량(Utilities Consumption)
+
+고정효과 모델은 주별로 개체별 특성을 고정된 상태로 고려합니다. 이 모델에 들어가는 입력 변수는 주별로 변하지 않는 특성을 나타내는 변수입니다. 
+
+예를 들어, 개체가 주인 경우, 해당 주의 특성을 나타내는 `state` 변수가 고정효과 모델에 들어갈 수 있습니다. 이 변수는 모든 관측값에서 동일한 값을 가지며, 해당 주의 고유한 특성을 나타냅니다.
+
+
+랜덤효과 모델은 개체 간의 특성이 랜덤하게 변화한다고 가정합니다. 따라서 이 모델에 들어가는 입력 변수는 개체 간의 변동성을 나타내는 변수입니다.
+
+위의 데이터셋에서는 `state` 변수가 랜덤효과 모델에 들어갈 수 있습니다. 이 변수는 개체 간의 차이를 나타내며, 모델링할 때 이러한 차이가 확률적으로 변화한다고 가정됩니다.
+
+
+고정효과 모델은 주별로 고정된 특성을 고려하기 때문에 `state` 변수와 같이 개체의 특성이 고정된 입력 변수를 사용합니다. 반면에 랜덤효과 모델은 개체 간의 특성이 랜덤하게 변화한다고 가정하므로 `state` 변수와 같이 개체 간의 변동성을 나타내는 입력 변수를 사용합니다.
+
+따라서 데이터셋에서 각 변수의 특성을 고려하여 적절한 모델을 선택할 수 있습니다.
+
+```{r}
+summary(fe_model)
+```
+
+이 결과는 고정효과 모델(Within Model)을 통해 추정된 회귀분석 결과를 보여줍니다.
+
+- **Balanced Panel**: 이 데이터셋은 균형잡힌(panel이 제대로 형성된) 패널 데이터를 가지고 있습니다. 총 개체 수(n)는 48이고, 시간 기간(T)은 17이며, 총 관측치 수(N)는 816입니다.
+
+- **Residuals**: 잔차(residuals)에 대한 요약 정보를 보여줍니다. 최소값(Min.), 제 1 사분위(1st Qu.), 중앙값(Median), 평균(Mean), 제 3 사분위(3rd Qu.), 최대값(Max.)을 나타냅니다.
+
+- **Coefficients**: 회귀 계수에 대한 추정치(Estimate), 표준 오차(Std. Error), t-value, p-value를 보여줍니다. 여기서는 `pcap`, `hwy`, `water`, `util` 변수들의 회귀 계수가 나타납니다.
+
+- **Total Sum of Squares**: 전체 제곱합(Total Sum of Squares)은 종속 변수의 총 변동을 나타냅니다.
+
+- **Residual Sum of Squares**: 잔차 제곱합(Residual Sum of Squares)은 모델로 설명되지 않은 변동을 나타냅니다.
+
+- **R-Squared**: 결정 계수(R-squared)는 종속 변수의 변동성을 설명하는 모델의 설명력을 나타냅니다.
+
+- **Adj. R-Squared**: 수정된 결정 계수(Adjusted R-squared)는 독립 변수의 수와 표본 크기를 고려하여 결정 계수를 보정한 값입니다.
+
+- **F-statistic**: F-통계량과 그에 따른 p-value를 보여줍니다. 모델의 통계적 유의성을 평가하는 데 사용됩니다.
+
+이 결과를 해석할 때, 회귀 계수의 통계적 유의성과 결정 계수를 고려하여 모델의 적합성을 평가할 수 있습니다. 위 결과에서는 회귀 계수들의 p-value가 0.05보다 크므로 유의한 통계적 결과를 얻지 못했다고 볼 수 있습니다. 또한 결정 계수는 0.57089로 모델이 종속 변수의 변동성을 약 57% 정도 설명한다는 것을 나타냅니다.
+
+```{r}
+summary(re_model)
+```
+마찬가지입니다.
+
+```{r, eval=FALSE}
+# Additional outputs for Fixed Effects Model
+print(coef(fe_model)) # Coefficients
+print(residuals(fe_model)) # Residuals
+print(fe_model$r.squared) # R-squared
+print(fe_model$fstatistic) # F-statistic
+```
+
+
+```{r}
+# Optional: Check diagnostics or further explore the model
+# Example: Plots, diagnostics, or exporting results
+
+# Checking for serial correlation
+pbgtest(fe_model)
+
+# Checking for heteroskedasticity
+bptest(fe_model, studentize = TRUE)
+
+# Plotting fitted values vs. residuals to check for any patterns
+plot(
+  as.numeric(fitted(fe_model)), 
+  as.numeric(residuals(fe_model)), 
+  main = "Fitted vs. Residuals",
+     xlab = "Fitted Values", ylab = "Residuals")
+abline(h = 0, col = "red")
+
+# Extract and print the coefficients of the model
+coef(fe_model)
+```
+
+
+
+## IV Model
+
+### 라이브러리 불러오기기
+
+```{r}
+# Load necessary library
+library(AER)
+library(plm)
+```
+
+### 데이터 불러오기
+```{r}
+# Load the data
+data("CreditCard", package = "AER")
+# View summary to understand the structure
+summary(CreditCard)
+```
+
+### Instrument Variable Estimation 예(cross-sectional data)
+
+주어진 코드는 AER 패키지의 `ivreg()` 함수를 사용하여 독립 변수와 종속 변수 간의 인과 관계를 추정하는 Instrumental Variable (IV) 회귀분석을 수행하는 예시입니다. 
+
+여기서 사용된 변수는 다음과 같습니다:
+- **종속 변수(dependent variable)**: expenditure (지출)
+- **독립 변수(independent variables)**: income (소득), owner (소유 여부), age (나이)
+
+그리고 `owner` 변수가 `age` 변수의 도구변수(Instrumental Variable)로 사용되었습니다.
+
+주어진 코드에서 `iv_model`은 Instrumental Variable 회귀 모델을 추정한 결과를 담고 있습니다. `summary(iv_model)`을 통해 해당 모델의 요약 정보를 확인할 수 있습니다. 
+
+이를 통해 회귀 계수의 추정치, 표준 오차, t-value, p-value 등을 포함한 다양한 통계적 정보를 확인할 수 있습니다. 또한, 모델의 적합도를 평가하기 위해 R-squared와 Adjusted R-squared 등도 제공됩니다.
+
+IV 회귀분석의 결과를 해석할 때는 도구변수의 유효성과 함께 모델의 적합성을 고려해야 합니다. 도구변수는 주어진 독립 변수와 종속 변수 간의 인과 관계를 적절히 대리할 수 있어야 하며, 모델은 데이터에 잘 적합되어야 합니다.
+
+```{r}
+# Instrumental Variable estimation using AER's ivreg (suitable for cross-sectional data)
+iv_model <- ivreg(expenditure ~ income + owner | age + owner, data = CreditCard)
+# Print the results of the IV regression
+summary(iv_model)
+
+```
+
+
+주어진 결과는 Instrumental Variable (IV) 회귀분석 결과를 보여줍니다. 
+
+- **Residuals**: 잔차에 대한 요약 통계치를 보여줍니다. 최소값, 제 1 사분위, 중앙값, 제 3 사분위, 최대값 등이 표시됩니다.
+
+- **Coefficients**: 회귀 계수에 대한 추정치(Estimate), 표준 오차(Std. Error), t-value, p-value가 나타납니다. 여기서는 `income`과 `owneryes` 변수들의 회귀 계수가 나타납니다.
+
+- **Signif. codes**: p-value에 따른 유의성 수준을 표시합니다. `***`는 0.001보다 작은 유의수준, `**`는 0.01보다 작은 유의수준, `*`는 0.05보다 작은 유의수준을 나타냅니다.
+
+- **Residual standard error**: 잔차 표준 오차를 나타냅니다.
+
+- **Multiple R-Squared**: 다중 결정 계수(Multiple R-squared)는 모델이 종속 변수의 변동성을 얼마나 설명하는지를 나타냅니다.
+
+- **Adjusted R-squared**: 수정된 결정 계수(Adjusted R-squared)는 독립 변수의 수와 표본 크기를 고려하여 결정 계수를 보정한 값입니다.
+
+- **Wald test**: Wald 검정 통계량과 그에 따른 p-value가 제공됩니다. 이는 모델의 통계적 유의성을 평가하는 데 사용됩니다.
+
+1. `income` 변수의 회귀 계수는 유의하지 않습니다(p-value > 0.05). 따라서 소득이 지출에 미치는 영향은 통계적으로 유의하지 않을 수 있습니다.
+2. `owneryes` 변수의 회귀 계수는 유의합니다(p-value < 0.05). 따라서 소유 여부가 지출에 미치는 영향은 통계적으로 유의할 수 있습니다.
+3. 모델의 전체 적합도는 Multiple R-Squared와 Adjusted R-squared 값이 음수이므로 모델이 데이터를 적절하게 설명하지 못한다는 것을 나타냅니다.
+4. Wald 검정 결과(p-value < 0.05)는 모델 전체의 통계적 유의성을 나타내며, 적어도 하나의 독립 변수가 종속 변수에 영향을 미치는 것으로 나타났습니다.
+
+
+IV 회귀분석에서 도구변수가 종속 변수에 영향을 미치지 않아야 하며, 도구변수와 종속 변수 간의 관계가 통계적으로 유의하지 않아야 합니다.
+
+```{r}
+chk <- lm(expenditure ~ age + owner,data = CreditCard)
+summary(chk)
+```
+
+주어진 코드 결과를 통해 도구변수(`owner`)가 종속 변수(`expenditure`)에 유효한 영향을 미침을 확인할 수 있습니다. `owneryes` 변수의 회귀 계수는 유의미하며(p-value < 0.05), 해당 변수와 종속 변수 간의 관계는 통계적으로 유의합니다. 
+
+따라서 이 모델에서 `owner` 변수는 IV 분석을 위한 도구변수로 적합하지 않습니다. 도구변수로 사용되는 변수는 종속 변수와의 관계가 통계적으로 유의하지 않아야 하며, 종속 변수에 영향을 미치지 않아야 합니다. 
+
+따라서 IV 분석을 위한 적절한 도구변수를 찾기 위해 다른 변수를 고려하거나 데이터에 대한 추가적인 검토가 필요할 것입니다.
+
+
+```{r}
+# Instrumental Variable estimation using AER's ivreg (suitable for cross-sectional data)
+iv_model <- ivreg(expenditure ~ income + share | dependents + age, data = CreditCard)
+# Print the results of the IV regression
+summary(iv_model)
+
+```
+
+```{r}
+library(dplyr)
+psych::corr.test(CreditCard %>% select(expenditure,income,age,share,dependents, majorcards,active))
+```
+
+```{r}
+lm(expenditure ~ dependents + age, data = CreditCard) %>% 
+  summary()
+```
+
+### Control variables
+
+예를 들어, y ~ x1 + x2 | x1 + z1 + z2와 같이, 여기서 x1과 x2는 각각 외생적이고 내생적 설명 변수이고, x1, z1, z2는 도구 변수입니다. 모델 공식의 우측에 있는 두 구성 요소는 모두 내재된 절편을 포함하며, lm()에 의해 추정된 선형 모델과 같이 절편이 명시적으로 제외되지 않는 한 -1을 통해 제외됩니다. 예제에서와 같이 외생적 설명 변수(예: 예제의 x1)는 도구로 사용될 도구 변수들 사이에 포함되어야 합니다. 모델 공식의 우측에 있는 두 부분에 외생적 변수를 나열하는 것이 많은 경우 지루할 수 있으므로, 추가적인 편의 옵션은 y ~ x1 | x2 | z1 + z2와 같이 세 부분으로 우측을 나누는 것입니다. 여기서 외생적, 내생적, 그리고 도구 변수(내생적 변수에 대해서만)를 각각 나열합니다.
+
+외생변수는 독립변수 이외의 변수로 종속변수에 영향을 줘 이를 통제하지 않을 시 연구결과의 내적타당도에 문제가 되는 변수를 뜻합니다. 흔히 `통제변수`로 취급합니다. 즉 x1은 통제변수이며 이는 표현식의 좌우에 동일한 순서로 등장합니다. 
+
+내생변수의 개수는 반드시 도구변수의 개수보다 작거나 같아야 합니다. 현재 z1, z2가 도구변수이므로 개수는 2개이고, 내생변수는 x2이므로 1개입니다. 따라사 이 조건에 부합합니다.
+
+이 데이터셋은 1976년 미국 청년 남성 국가 측정 자료(NLSYM)를 기반으로 합니다. 이 데이터셋은 1976년을 중심으로 사용되었으며, 일부 변수는 이전 연도의 정보를 활용하여 구성되었습니다.
+
+주요 변수는 다음과 같습니다:
+
+- `wage`: 1976년의 임금 (시간당 센트로 표시)
+- `education`: 1976년의 교육 수준 (년)
+- `experience`: 노동 시장 경험 연수, age - education - 6으로 계산됨
+- `ethnicity`: 인종을 나타내는 요인. 개인이 아프리카계 미국인("afam")인지 여부를 나타냄
+- `smsa`: 1976년에 표준 광역 통계 지역(SMSA)에 거주하는지 여부를 나타내는 요인
+- `south`: 1976년에 남부에 거주하는지 여부를 나타내는 요인
+- `age`: 1976년의 나이 (년)
+- `nearcollege`: 4년제 대학 가까이 자란지 여부를 나타내는 요인
+- `nearcollege2`: 2년제 대학 가까이 자란지 여부를 나타내는 요인
+- `nearcollege4`: 4년제 공립 또는 사립 대학 가까이 자란지 여부를 나타내는 요인
+- `enrolled`: 1976년에 대학에 등록되어 있는지 여부를 나타내는 요인
+- `married`: 1976년에 결혼했는지 여부를 나타내는 요인
+- `education66`: 1966년의 교육 수준 (년)
+- `smsa66`: 1966년에 SMSA에 거주하는지 여부를 나타내는 요인
+- `south66`: 1966년에 남부에 거주하는지 여부를 나타내는 요인
+- `feducation`: 아버지의 교육 수준 (년). 누락된 경우 평균값으로 대체됨
+- `meducation`: 어머니의 교육 수준 (년). 누락된 경우 평균값으로 대체됨
+- `fameducation`: 가족 교육 수준을 나타내는 순서형 요인
+- `kww`: KWW(사회 인식능력) 점수
+- `iq`: 표준화된 지능지수(IQ) 점수
+- `parents14`: 14세 때 부모님과 함께 살았는지 여부를 나타내는 요인: 부모 양쪽, 단독 모, 계모, 기타
+- `library14`: 14세 때 집에 도서관 카드가 있는지 여부를 나타내는 요인
+
+이 데이터셋은 교육 수준이 임금에 미치는 영향을 분석하는데 사용될 수 있습니다. 이를 위해 교육 수준을 독립 변수로 사용하고, 임금을 종속 변수로 사용하여 회귀 분석을 수행할 수 있습니다. 데이터셋의 설명에 따르면, 교육 수준이 임금에 미치는 영향을 분석하는데 있어서 종속 변수가 내생적인 요인으로 작용할 수 있기 때문에 IV(instrumental variable) 회귀분석이 사용될 수 있다고 합니다.
+
+```{r}
+data("SchoolingReturns", package = "ivreg")
+summary(SchoolingReturns[, 1:8])
+```
+위의 코드는 다음을 수행합니다:
+
+1. `lm()` 함수를 사용하여 다중 선형 회귀분석을 수행합니다.
+2. 종속 변수로는 `log(wage)`를 사용합니다. 이는 `wage` 변수의 로그 변환입니다.
+3. 독립 변수로는 `education`, `experience`, `ethnicity`, `smsa`, `south`를 사용합니다. 여기서 `poly(experience, 2)`는 `experience` 변수의 2차 다항식을 추가하는 것을 의미합니다. 이를 통해 경험의 비선형적인 영향을 고려할 수 있습니다.
+4. 데이터는 "SchoolingReturns" 데이터셋을 사용합니다.
+
+그 다음 `summary()` 함수를 사용하여 회귀분석 결과를 요약합니다.
+
+결과에서는 회귀계수(coefficient), 표준오차(standard error), t-value, p-value 등이 제공됩니다. 이를 통해 각 독립 변수가 종속 변수에 미치는 영향의 통계적 유의성을 확인할 수 있습니다.
+
+```{r}
+m_ols <- lm(log(wage) ~ education + poly(experience, 2) + ethnicity + smsa + south,
+  data = SchoolingReturns)
+summary(m_ols)
+```
+
+```{r}
+m_iv <- ivreg(log(wage) ~ education + poly(experience, 2) + ethnicity + smsa + south |
+  nearcollege + poly(age, 2) + ethnicity + smsa + south,
+  data = SchoolingReturns)
+```
+
+위의 코드는 IV(instrumental variable) 회귀분석을 수행합니다. IV 회귀분석은 종속 변수와 내생적 독립 변수 간의 인과 관계를 추정하는 데 사용됩니다. 종속 변수는 여전히 log(wage)를 사용하고, 내생적인 독립 변수는 education, experience, ethnicity, smsa, south입니다. 이 모델은 또한 외생적 독립 변수로 nearcollege, poly(age, 2), ethnicity, smsa, south를 사용합니다. 이러한 외생적 독립 변수는 IV로 사용되어 종속 변수와 내생적 독립 변수 간의 인과 관계를 추정하는 데 도움이 됩니다.
+
+결과는,
+
+```{r}
+summary(m_iv)
+```
+모델 비교결과를 출력해봅시다.
+
+```{r}
+library(modelsummary)
+m_list <- list(OLS = m_ols, IV = m_iv)
+msummary(m_list,output='kableExtra')
+```
+
+
