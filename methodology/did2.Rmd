@@ -1,0 +1,202 @@
+---
+title: "Two Stage Difference-in-Differences"
+author: 김태경, PhD.
+date: 2024-04-19
+output: html_notebook
+---
+
+# Intro
+
+두 단계 차이-차이(two stage Difference-in-Differences, 이하 2S-DID) 분석은 통계 모델의 한 형태로서, 복잡한 상황에서 처리 효과를 추정할 때 사용됩니다. 기본적인 차이-차이(DID) 모델은 처리 그룹과 대조 그룹 간의 차이를 시간에 따라 비교하여 처리의 효과를 추정합니다. 그러나, 때때로 연구자는 처리의 효과가 다른 요인에 의해 중개되는지 여부를 이해하기를 원할 수 있습니다. 이럴 때 두 단계 DID 분석이 사용될 수 있습니다.
+
+**첫 번째 단계**: 여기서 연구자는 하나의 결과(예: 교육 프로그램의 참여)를 예측하기 위한 회귀 모델을 만듭니다. 이 단계는 일반적으로 공변량을 포함하여 해당 결과가 처리 여부(예: 정책 도입)에 어떻게 의존하는지를 추정합니다.
+
+**두 번째 단계**: 첫 번째 단계에서 얻은 예측된 결과를 사용하여, 또 다른 회귀 모델을 통해 최종 관심 있는 결과(예: 임금)에 대한 처리의 효과를 추정합니다. 이 단계에서는 첫 번째 단계의 예측값을 독립 변수로 포함하여, 처리가 최종 결과에 미치는 직접적인 효과를 측정합니다.
+
+2S-DID는 특히 처리가 하나의 결과를 통해 간접적으로 다른 결과에 영향을 미칠 때 유용합니다. 이 방법은 특정 처리가 예상된 중간 결과를 통해 최종 결과에 미치는 총체적인 효과를 이해할 수 있게 해줍니다. 예를 들어, 최저 임금 인상이 노동 시장 참여를 증가시키고, 이것이 다시 임금에 영향을 미칠 수 있습니다. 여기서 노동 시장 참여는 중간 결과이며, 임금은 최종 결과입니다.
+
+이런 종류의 분석은 데이터의 세부 사항을 면밀히 파악하고, 다양한 가정들을 충족하는지 확인하는 것이 중요합니다. 만약 이 가정들이 충족되지 않으면, 추정된 효과는 편향될 수 있습니다.
+
+
+
+## Source
+[did2](https://cran.r-project.org/web/packages/did2s/vignettes/Two-Stage-Difference-in-Differences.html)
+
+## Model
+
+$$
+y_{it} = \mu_{i} + \mu_{t} + \sum_{k=-L}^{-2} \tau^{k} D_{it}^{k} + \sum_{k=1}^{K} \tau^{k} D_{it}^{k} + \varepsilon_{it}
+$$
+
+
+모델에 관해 상세히 봅시다.
+
+1. **두 방향 고정 효과(TWFE)**: 이것은 시간에 따라 변하는 요소와 각 단위(예: 개인, 기업, 지역 등)의 특성을 동시에 통제할 수 있게 해주는 모델입니다. 모델의 식에서 $\mu_i$는 각 단위의 고정 효과를, $\mu_t$는 각 시간의 고정 효과를, $D_i$는 처리 여부를 나타내며, $\varepsilon_{it}$는 오차 항입니다.
+
+2. **동적 이벤트 스터디 모델**: 이 모델은 처리가 시작되기 전과 후의 여러 시점을 포함해서 처리 효과를 추정합니다. 여기서 `k`는 시간의 특정 지점을 나타내며, 처리 시작으로부터의 리드와 래그(즉, 앞뒤 시간대)를 고려합니다.
+
+이러한 모형에서는 일반 최소 제곱법(Ordinary Least Squares, OLS)으로 이런 모델을 추정할 때 발생할 수 있는 문제점을 고려해 보아야 합니다. 특히, 처리 효과의 이질성이 클 때, 평균 처리 효과를 잘못 추정할 수 있다는 것입니다. 즉, 각 그룹에서 처리가 미치는 영향이 서로 다르게 나타날 수 있습니다.
+
+이를 해결하는 한 가지 방법은 프리슈-워-러벨(FWL: Frisch-Waugh-Lovell) 정리를 통해 고정 효과를 고려하여 처리 효과를 다시 계산하는 것입니다. 이 방법은 처리되지 않았을 상황을 '재구성'하여, 처리 효과의 추정치가 실제 통제 그룹의 결과와 비교될 수 있도록 합니다. 이론적으로는 처리를 받지 않은 상태의 결과를 일관되게 추정할 수 있다면, 실제 처리된 결과에서 이를 뺀 값이 처리의 순수한 효과를 나타낼 것입니다.
+
+
+# did2s
+
+## 설치
+
+```{r}
+install.packages('did2s')
+#or
+#remotes::install_github("kylebutts/did2s")
+```
+
+윈도우 사용자 여러분 Rtools를 먼저 설치해야 합니다. 구글 검색해서 설치하세요.
+
+## 예
+
+```{r}
+library(did2s)
+library(ggplot2)
+library(dplyr)
+```
+
+```{r}
+data('df_het')
+head(df_het)
+```
+df_het 데이터를 설명하겠습니다. 여기서 설명하는 가상 데이터셋은 패널 데이터 형식을 가지고 있으며, 두 개의 처리 그룹과 이질적인 효과를 포함하고 있습니다. 데이터 프레임에는 총 31,000개의 행과 15개의 변수가 있습니다:
+
+- `unit`: 패널 데이터에서의 개별 대상(예: 사람, 기업 등)을 나타냅니다.
+- `year`: 패널 데이터에서의 시간을 나타내며, 보통 연도를 의미합니다.
+- `g`: 처리가 시작되는 연도입니다.
+- `dep_var`: 결과 변수로, 분석의 주요 관심사인 변수를 나타냅니다.
+- `treat`: 처리 여부를 나타내는 참/거짓 변수로, 처리가 실제로 적용된 시기를 나타냅니다.
+- `rel_year`: 처리 시작에 대한 상대적인 연도를 나타냅니다. 'Inf'는 절대 처리되지 않는 경우를 의미합니다.
+- `rel_year_binned`: 처리 시작에 대한 상대적인 연도를 나타내지만, -6 이하 및 6 이상의 값은 범주화되어 집계됩니다.
+- `unit_fe`: 개별 대상에 대한 고정 효과(Fixed Effect)입니다.
+- `year_fe`: 연도에 대한 고정 효과입니다.
+- `error`: 랜덤 오류 구성 요소로, 모델에 무작위성을 추가합니다.
+- `te`: 처리의 정적(변하지 않는) 효과를 나타내는 변수입니다.
+- `te_dynamic`: 처리의 동적(변화하는) 효과를 나타내는 변수입니다.
+- `state`: 개별 대상이 속한 주를 나타냅니다.
+- `group`: 그룹의 문자열 이름으로, 데이터가 속한 범주나 집단을 나타냅니다.
+
+이 데이터는 시간에 따라 다른 개인이나 단위들에 대해 처리(예: 정책 변경, 프로그램 도입 등)가 어떤 영향을 미쳤는지를 분석하기 위한 것으로 보입니다. 각 변수들은 처리의 영향을 평가하고, 결과를 해석하는 데 필요한 다양한 차원을 제공합니다. 데이터셋의 구조를 통해 연구자는 처리가 시작되기 전과 후의 결과를 비교하고, 처리의 영향이 시간에 따라 어떻게 변하는지, 그리고 이러한 효과가 개별 대상이나 그룹마다 어떻게 다른지를 분석할 수 있습니다.
+
+
+
+```{r}
+df_het %>% 
+  group_by(year,g) %>% 
+  summarize(outcome = mean(dep_var)) %>% 
+  ungroup() %>% 
+  ggplot(aes(x=year,y=outcome,col=as.factor(g))) +
+  geom_point() +
+  geom_line() + 
+  theme_bw()
+```
+처리가 시작된 2000년과 2010년에 따라 기울기의 변화가 급격히 나타나는 것을 볼 수 있습니다.
+
+### Estimate Two-stage Difference-in-Differences
+
+#### Static DID
+
+"정적 차이-차이 추정(static DiD estimation)"이란 변하지 않는 효과를 가진 차이-차이 모델을 추정하는 것입니다. 여기서 설명된 내용에 따르면, R의 `fixest` 패키지의 기능들을 활용해 이 과정을 수행할 수 있습니다. 여기서 몇 가지 중요한 포인트가 있습니다:
+
+1. **고정 효과 명시**: `fixest::feols` 함수를 사용하면 `|` 기호를 이용해 고정 효과를 손쉽게 명시할 수 있습니다. 고정 효과는 시간이나 개체 등에 따른 변하지 않는 특성을 모델에서 통제하는 것을 말합니다.
+
+2. **개선된 요인 변수 지원**: `fixest::i`는 범주형 변수를 더 잘 처리할 수 있도록 해주며, 이는 모델의 해석을 개선할 수 있습니다.
+
+3. **`did2s` 함수와 `fixest` 객체**: `did2s` 함수를 사용해 추정하면, `fixest` 패키지의 추정 객체를 반환합니다. 이는 `fixest::esttable` (추정 결과를 표로 나타내기), `fixest::coefplot` (계수를 그래프로 나타내기), 그리고 `fixest::iplot` (상호작용 항을 포함한 모델의 결과를 그래프로 나타내기) 같은 `fixest` 패키지의 다른 함수들과 호환됩니다.
+
+이를 통해, 고정 효과를 포함한 정적 DiD 모델을 추정하고, 이 결과를 다양한 방식으로 시각화하거나 표현할 수 있습니다. 이 모든 과정이 `fixest` 패키지 안에서 이루어지기 때문에, 분석 과정이 통합되고 효율적입니다.
+
+```{r}
+static = did2s(
+  df_het, #data
+  yname = 'dep_var',
+  first_stage = ~ 0 | state + year, #fixed effect (state and year)
+  second_stage = ~ i(treat,ref=FALSE), #treatment indicator using fixest::i()
+  treatment = 'treat',
+  cluster_var = 'state' #표준오차는 state별로 묶어 처리
+)
+```
+
+결과를 봅시다.
+
+```{r}
+fixest::esttable(static)
+```
+
+추정 결과는 `fixest::esttable` 함수로 출력되며, 'treat = TRUE'의 계수는 처리 효과를 나타냅니다. 여기서 추정된 효과는 2.152로, 괄호 안의 숫자 0.0476은 계수의 표준 오차를 나타냅니다. 별표 세 개는 이 효과가 통계적으로 매우 유의미함을 나타냅니다(일반적으로 p-value가 0.001보다 작을 때 사용됩니다).
+
+이 결과는 'treat' 변수가 참일 때(즉, 처리가 적용되었을 때) 예상되는 종속 변수 'dep_var'의 변화량이 약 2.152 단위라는 것을 보여주며, 이 변화량은 통계적으로 유의미한 것으로 나타났습니다. 이는 처리(예: 정책, 프로그램 등)가 긍정적인 영향을 미쳤음을 나타낼 수 있습니다.
+
+### Event study
+
+```{r}
+es <- did2s(df_het,
+            yname='dep_var',
+            first_stage = ~0|state+year,
+            second_stage = ~i(rel_year,ref=c(-1,Inf)),
+            treatment = 'treat',
+            cluster_var='state')
+```
+참고로 i()는 fixest에 있는 함수에요. Create or interact variables with, factors라는 제목이 있지요. rel_year를 각각의 요인으로 처리하는 데 ref는 참조 벡터의 값입니다. 만약 ref=TRUE이면 factor_var의 첫 번째 값을 제거합니다. 이는 범주형 변수에서 기준 카테고리 수준을 결정하는데 사용하고, c(-1,Inf)와 같은 경우에는 reference를 -1부터 무한대로 잡고 있습니다.
+
+결과를 살펴보겠습니다.
+
+```{r}
+fixest::esttable(es)
+```
+시각적으로 알아봅니다.
+```{r}
+fixest::iplot(es, 
+              main = "Event study: Staggered treatment", 
+              xlab = "Relative time to treatment", 
+              col = "steelblue", 
+              ref.line = -0.5)
+
+# Add the (mean) true effects
+true_effects = head(tapply((df_het$te + df_het$te_dynamic), df_het$rel_year, mean), -1)
+points(-20:20, true_effects, pch = 20, col = "black")
+
+# Legend
+legend(x=-20, y=3, col = c("steelblue", "black"), pch = c(20, 20), 
+       legend = c("Two-stage estimate", "True effect"))
+```
+
+### 남은 것들
+
+`Comparison to TWFE`를 생각해 봅시다. 2S-DID와 전통적인 TWFE 간의 모델 추정에 대해 이해하기로 합니다.
+
+```{r}
+twfe = feols(dep_var ~ i(rel_year, ref=c(-1, Inf)) | unit + year, data = df_het)
+```
+
+그리고 앞서 구한 결과와 비교합니다.
+
+```{r}
+fixest::iplot(list(es, twfe), sep = 0.2, ref.line = -0.5,
+      col = c("steelblue", "#82b446"), pt.pch = c(20, 18), 
+      xlab = "Relative time to treatment", 
+      main = "Event study: Staggered treatment (comparison)")
+
+points(-20:20, true_effects, pch = 21, col = "red")
+# Legend
+legend(x=-20, y=3, col = c("steelblue", "#82b446","red"), pch = c(20, 18,21), 
+       legend = c("Two-stage estimate", "TWFE","True"))
+```
+코드 해설입니다.
+
+1. **TWFE 추정**: `feols` 함수를 사용해 TWFE 모델을 추정합니다. 이 모델은 `dep_var` (종속 변수)와 `rel_year` (처리 시작 대비 상대적인 연도)의 관계를 분석하며, 여기서 `-1`과 `Inf`를 참조 카테고리로 설정합니다. 이 추정에서는 또한 각 `unit`과 `year`에 대한 고정 효과를 포함합니다. 데이터는 `df_het`에서 가져옵니다.
+
+2. **그래프 플로팅**: `fixest::iplot` 함수는 2S-DID 모델(`es`)과 TWFE 모델(`twfe`)의 결과를 비교하는 그래프를 생성합니다. 여기서 `sep`는 추정치 간의 수직 간격을, `ref.line`은 기준선의 위치를, `col`은 선의 색을, `pt.pch`는 포인트 마커의 형태를 정의합니다. `xlable`과 `main`은 각각 x축 레이블과 그래프의 제목입니다.
+
+3. **범례 추가**: `legend` 함수를 사용해 그래프에 범례를 추가합니다. 이 범례는 두 추정 방법을 구별하기 위해 사용됩니다. 위치와 색상, 포인트 마커가 정의됩니다.
+
+감사합니다.
+
+
+
+
