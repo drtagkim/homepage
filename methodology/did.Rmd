@@ -1,9 +1,14 @@
 ---
-title: "Difference-in-Differences"
+title: "Treatment Effects with Multiple Periods and Groups"
 output: html_notebook
 ---
 
 # Intro
+
+DID(difference-in-differences)에서 `여러 기간과 그룹을 가진 처리 효과`는 경제학, 공공정책, 사회과학 등의 분야에서 사용되는 통계적 방법입니다. 이 방법은 특정 정책, 프로그램, 또는 다른 형태의 '처리'(treatment)가 다양한 시간대에 걸쳐 다른 그룹에 미친 영향을 평가하기 위해 사용됩니다.
+
+
+
 
 ## Source
 - [Getting started with the did 
@@ -194,6 +199,12 @@ summary(agg.ct)
 
 ### Selecting Alternative Control Groups
 
+`did` 패키지는 기본적으로 처리를 한 번도 받지 않은 그룹을 대조군으로 사용합니다. 만약 처리를 전혀 받지 않은 그룹이 없다면, `did` 패키지는 자동으로 마지막 기간을 데이터에서 제외하고, 마지막 기간까지 처리를 받지 않은 단위들을 대조군으로 설정합니다. 이 경우에는 경고 메시지도 함께 나타납니다.
+
+대조군을 설정하는 또 다른 방법은 "아직 처리되지 않은" 그룹을 사용하는 것입니다. "아직 처리되지 않은" 그룹은 처리를 전혀 받지 않은 그룹뿐만 아니라 특정 시점까지는 처리를 받지 않았지만 나중에는 처리를 받게 되는 단위들도 포함합니다. 이 그룹은 시간이 지남에 따라 변할 수 있지만, 처리를 전혀 받지 않은 그룹보다는 항상 크거나 같은 크기를 갖습니다. "아직 처리되지 않은" 그룹을 대조군으로 사용하고 싶다면, 옵션에서 `control_group="notyettreated"`로 설정하면 됩니다.
+
+간단히 말해, '아직 처리되지 않은' 그룹을 대조군으로 설정하는 것은 처리를 받지 않은 단위들뿐만 아니라 나중에 처리를 받게 될 단위들도 포함해서 보다 큰 대조군을 만들어 분석의 정확도를 높이는 방법입니다.
+
 ```{r}
 example_attgt_altcontrol <- att_gt(
   yname='Y',
@@ -207,4 +218,244 @@ example_attgt_altcontrol <- att_gt(
 summary(example_attgt_altcontrol)
 ```
 
+### Unbalanced Panel Data
 
+`did` 패키지는 패널 데이터(같은 대상에 대해 여러 시간에 걸쳐 수집된 데이터)를 처리할 때 기본적으로 균형 잡힌 패널(모든 대상에 대해 모든 시간 기간에 걸쳐 데이터가 있는 경우)을 가정합니다. 만약 데이터가 균형 잡히지 않았다면(어떤 시간 기간에서 일부 대상의 데이터가 누락된 경우), `did` 패키지는 누락된 관측치가 있는 단위를 제거함으로써 데이터를 강제로 균형 잡힌 패널로 만듭니다.
+
+그러나 사용자가 `allow_unbalanced_panel = TRUE` 옵션을 지정하면, `did` 패키지는 데이터가 균형을 이루지 않은 상태로 두고 분석을 진행합니다. 이 경우 실제로 발생하는 주요한 단점은 계산 시간이 늘어난다는 것입니다. 또한, 사용자는 균형 잡히지 않은 패널을 사용하기 전에 왜 패널이 균형을 이루지 않는지에 대해 신중하게 생각해보는 것이 좋습니다. 데이터가 왜 균형을 이루지 않는지에 대한 이유가 분석 결과에 영향을 줄 수 있기 때문입니다.
+
+
+### Alternative Estimation Methods
+
+`did` 패키지는 `DRDID` 패키지에 있는 2×2 차이-차이(Difference-in-Differences, DiD) 추정기들을 모두 포함하고 있습니다. 기본적으로 `did` 패키지는 결과 변수에 대한 첫 단계 선형 회귀와 일반화된 경향 점수를 위한 로짓(logit) 모델을 기반으로 하는 "이중 견고(doubly robust)" 추정기를 사용합니다. 이것은 두 가지 접근 방식을 모두 사용하여 추정의 정확도를 높이려는 방법입니다.
+
+다른 옵션으로는 "ipw"가 있으며, 이는 역확률 가중치(Inverse Probability Weighting)를 사용합니다. "reg" 옵션은 단순히 회귀분석을 기반으로 처리 효과를 추정합니다. "ipw"는 처리를 받을 확률을 고려하여 가중치를 주고, "reg"는 통계적 회귀 모델을 사용하여 처리 효과를 계산합니다. 
+
+간단히 말하자면, `did` 패키지는 결과를 얻기 위해 여러 통계적 방법들을 제공하며, 사용자는 데이터의 특성이나 분석의 목적에 따라 가장 적합한 방법을 선택할 수 있습니다.
+
+```{r}
+# 회귀 방법을 사용한 추정
+example_attgt_reg <- att_gt(yname = "Y",
+                            tname = "period",
+                            idname = "id",
+                            gname = "G",
+                            xformla = ~X,
+                            data = dta,
+                            est_method = "reg"
+                           )
+
+# 역확률 가중치를 사용한 추정
+example_attgt_ipw <- att_gt(yname = "Y",
+                            tname = "period",
+                            idname = "id",
+                            gname = "G",
+                            xformla = ~X,
+                            data = dta,
+                            est_method = "ipw"
+                           )
+```
+
+
+
+# An example with real data
+
+Callaway와 Sant'Anna (2020)의 연구에서 사용된 데이터셋의 일부를 사용할 것입니다. 이 데이터셋에는 2003년부터 2007년까지의 미국 카운티별 청소년 고용률이 들어 있습니다. 이 데이터는 R에서 불러올 수 있으며, 특정 연구나 분석을 위해 사용되곤 합니다. 
+
+```{r}
+data(mpdta)
+```
+
+```{r}
+head(mpdta)
+```
+
+```{r}
+str(mpdta)
+```
+- `year`: 관측 연도를 나타냅니다.
+- `countyreal`: 특정 카운티를 고유하게 식별하는 번호입니다.
+- `lpop`: 카운티 인구 천 명 단위의 로그값입니다.
+- `lemp`: 카운티 내 청소년 고용 수의 로그값입니다.
+- `first.treat`: 카운티가 속한 주가 최저 임금을 올린 연도입니다. 전체 기간 동안 연방 최저 임금과 동일한 최저 임금을 유지한 카운티의 경우에는 0으로 설정됩니다.
+- `treat`: 해당 연도에 특정 카운티가 처리(예: 최저 임금 인상 같은 정책 변경)를 받았는지 여부입니다.
+
+```{r}
+table(mpdta$first.treat)
+```
+```{r}
+length(unique(mpdta$countyreal))
+```
+```{r}
+library(dplyr)
+mpdta %>% 
+  group_by(year,first.treat) %>% 
+  summarize(cnt=n_distinct(countyreal))
+```
+
+
+## The Effect of the Minimum Wage on Youth Employment
+
+```{r}
+mw.attgt <- att_gt(
+  yname='lemp',
+  gname='first.treat',
+  idname='countyreal',
+  tname='year',
+  xformla = ~1,
+  data=mpdta
+)
+summary(mw.attgt)
+```
+
+R에서 `att_gt` 함수를 사용해 최저 임금이 청소년 고용에 미친 효과를 분석한 결과를 요약한 것입니다. 결과는 다음과 같은 정보를 포함한 데이터 프레임입니다:
+
+- `Group`: 여기서는 연도를 나타냅니다. 특정 연도에서 최저 임금이 올라갔다는 것을 의미할 수 있습니다.
+- `Time`: 관측 연도를 나타냅니다.
+- `ATT(g,t)`: 각 그룹(여기서는 연도)과 시간에 대한 평균 처리 효과입니다. 이 값이 음수인 경우, 최저 임금의 상승이 청소년 고용률을 감소시켰다는 것을 나타낼 수 있습니다.
+- `Std. Error`: 추정치의 표준 오차로, 추정치의 불확실성을 나타냅니다.
+- `[95% Simult. Conf. Band]`: 95% 동시 신뢰 구간을 나타내며, 추정된 효과가 실제로 어떤 범위 내에 있을 것이라는 확률을 의미합니다.
+
+별표(*)가 붙은 값은 해당 추정치가 통계적으로 유의미하다는 것을 나타냅니다. 예를 들어, 2004년 그룹에서 2007년 시간에 대한 `ATT(g,t)`는 -0.1008이며, 별표가 있어 이는 통계적으로 유의미하다는 것을 나타냅니다. 이것은 2004년에 최저 임금이 상승한 주의 카운티에서 2007년에 청소년 고용률이 평균적으로 감소했다는 것을 의미할 수 있습니다. 2006에도 마찬가지네요.
+
+그래프로 확인해봅시다.
+
+```{r fig.width=4,fig.height=8}
+ggdid(mw.attgt, ylim=c(-.3,.3))
+```
+
+### aggregate the group-time average treatment effects
+
+```{r}
+mw.dyn = aggte(mw.attgt,type='dynamic')
+summary(mw.dyn)
+```
+
+```{r}
+library(ggplot2)
+ggdid(mw.dyn) + 
+  geom_line(color='red')
+```
+이 결과는 최저 임금이 청소년 고용에 미치는 영향을 시간에 따라 살펴보는 이벤트 스터디 방식에서 얻어진 동적 효과의 동시 신뢰 구간을 계속 보여주고 있습니다. 이 결과들은 이전에 얻어진 그룹-시간 평균 처리 효과와 크게 다르지 않으며, 처리 전 기간에서는 병행 추세를 기각하지 않고(즉, 처리 전에는 영향이 없다고 볼 수 있으며), 처리 후에는 최저 임금이 청소년 고용에 약간 부정적인 영향을 미칠 수 있다는 것을 나타냅니다.
+
+이러한 동적 효과 추정기들의 한 가지 문제는 이벤트 스터디 플롯에서 다른 노출 기간에 따라 그룹 구성이 변한다는 것입니다. 예를 들어, 2007년에 최저 임금을 올린 주들의 경우, 최저 임금의 즉각적인 평균 효과(e=0)만 확인할 수 있습니다. 반면에 2004년이나 2006년에 최저 임금을 올린 주들은 다양한 이벤트 시간(e=0,1,2,3 혹은 e=0,1)에 대한 평균 효과를 확인할 수 있습니다.
+
+이벤트 스터디 플롯을 계산할 때 e=0인 경우에는 모든 그룹의 효과를 합치지만, e=1,2,3인 경우에는 그렇지 않습니다. 만약 최저 임금의 효과가 그룹에 따라 체계적으로 다르다면(여기서는 모든 그룹의 영향이 처음에는 거의 0에 가깝고 시간이 지날수록 부정적으로 변하는 것처럼 보이지만 큰 차이는 없습니다), 이는 다양한 그룹 간에 선택적인 처리 시점과 혼란스러운 동적 변화를 야기할 수 있습니다.
+
+이를 해결하기 위한 한 가지 방법은 샘플을 균형잡히게 만드는 것입니다: (i) 일정 기간 이상 처리를 받은 그룹만을 포함시키고 (ii) 그 시간 기간에 대한 동적 효과만을 살펴봅니다. `did` 패키지에서는 `balance_e` 옵션을 지정하여 이를 수행할 수 있습니다. 여기서 `balance_e = 1`을 설정하면, 2004년과 2006년에 처리를 받은 주들의 그룹만 고려하고(e=0,1에 대한 이벤트 스터디 타입의 파라미터를 계산할 수 있기 때문에), 2007년에 처리된 그룹은 제외합니다(이 그룹에 대해 e=1인 이벤트 스터디 타입 파라미터를 계산할 수 없기 때문에), 그리고 오직 즉각적인 평균 효과와 주가 최저 임금을 올린 후 한 기간의 평균 효과만을 살펴봅니다.
+
+
+```{r}
+mw.dyn.balance = aggte(
+  mw.attgt,
+  type='dynamic',
+  balance_e = 1
+)
+summary(mw.dyn.balance)
+```
+
+```{r}
+ggdid(mw.dyn.balance)
+```
+
+마지막으로 공변량을 포함하여 동일한 결과를 모두 실행할 수 있습니다. 이 애플리케이션에서 결과는 거의 동일한 것으로 나타났으며, 여기에서는 공변수를 포함하면서 그룹별 평균 치료 효과를 추정하는 코드만 제공합니다. 다른 단계는 동일합니다.
+
+```{r}
+mw.attgt.X <- att_gt(yname = "lemp",
+                   gname = "first.treat",
+                   idname = "countyreal",
+                   tname = "year",
+                   xformla = ~lpop,
+                   data = mpdta,
+                   )
+```
+
+
+# 남은 이야기
+
+##평행추세가정(parallel trends assumptions) 검정
+
+
+애플리케이션에서 사전 테스트에 대한 가장 일반적인 접근 방식은 이벤트-연구 회귀를 실행하는 것입니다.
+
+모델은 다음과 같습니다.
+
+$$
+Y_{it}= \theta_t + \mu_i + \sum^{\tau-1}_{l=-\tau}D^{l}_{it}\mu_l + v_{it}
+$$
+기간별 더미 변수를 잡아서 특정 기간을 중심으로 앞 뒤를 다 살펴보면 되는 것입니다.
+
+시뮬레이션 데이터를 두고 분석을 해 봅니다.
+
+```{r}
+time.periods = 4
+te.e = time.periods:1 #generate dynamic effects
+sample.data = build_sim_dataset(reset.sim(time.periods,n=5000))
+head(sample.data)
+```
+
+```{r}
+Dtl <- sapply(
+  -(time.periods-1):(time.periods-2),
+  function(l) {
+    -1*(sample.data$period == sample.data$G + 1) & (sample.data$G > 0)
+  }
+) %>% as.data.frame()
+Dtl
+```
+
+```{r}
+colnames(Dtl) = c(
+  paste0('Dtmin',(time.periods-1):1),
+  paste0('Dt',0:(time.periods-2))
+)
+```
+
+```{r}
+Dtl
+```
+
+```{r}
+sample.data = bind_cols(sample.data,Dtl)
+row.names(sample.data) = NULL
+```
+
+Event study
+
+```{r}
+library(plm) #linear model for panel data
+
+# normalize effect to be 0 in pre-treatment period
+
+es = plm(
+  Y ~ Dtmin3 + Dtmin2 + Dt0 + Dt1 + Dt2,
+  data = sample.data,
+  model = 'within',
+  effect = 'twoways',
+  index = c("id","period")
+)
+summary(es)
+```
+마찬가지로, did에서도 group으로 볼 수 있어요.
+
+```{r}
+did_att_gt <- att_gt(yname="Y",
+                     tname="period",
+                     idname="id",
+                     gname="G",
+                     data=sample.data,
+                     bstrap=FALSE,
+                     cband=FALSE)
+summary(did_att_gt)
+```
+```{r fig.height=8,fig.width=4}
+ggdid(did_att_gt) + geom_line()
+```
+
+```{r}
+# aggregate them into event study plot
+did_es <- aggte(did_att_gt, type="dynamic")
+
+# plot the event study
+ggdid(did_es)+geom_line()
+```
+거의 이벤트를 기점으로 꺽이는 것을 볼 수 있고, 이전과 이후의 과정이 직선에 가깝습니다.
