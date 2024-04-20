@@ -194,6 +194,82 @@ t.test(re78 ~ treat, data = matched_data.rep)
 ### PSM - 음주와 암
 
 ```{r}
-
+cancer <- read.csv('https://raw.githubusercontent.com/drtagkim/homepage/main/methodology/psm_example.csv')
 ```
 
+음주가 간암에 미치는 영향을 살펴보기 위한 데이터입니다. 출처는 국민건강영양조사입니다. 이 데이터는 https://m.blog.naver.com/paperfactor_ceo/222098513280 에서 가져왔습니다. 데이터에서 요인으로 처리할 부분들을 미리 as.factor()로 처리합니다. 
+
+```{r}
+library(dplyr)
+cancer <- cancer %>% 
+  select(-ID,-year,-LC)
+```
+
+```{r}
+str(cancer)
+```
+
+변수는 다음과 같습니다.
+
+- **sex**: 성별
+- **age**: 연령
+- **drk_st**: 음주 여부
+- **drk_freq**: 음주 빈도
+- **HBV**: B형 간염 여부
+- **HCV**: C형 간염 여부
+- **exercise**: 주당 운동 횟수 
+
+```{r}
+t.test(HBV ~ drk_st, data = cancer)
+```
+```{r}
+ps_model.cancer <- matchit(
+  drk_st ~ sex + age + exercise,
+  data = cancer,
+  method = 'nearest',
+  replace = TRUE)
+```
+
+
+```{r}
+summary(ps_model.cancer)
+```
+
+```{r}
+matched_data.cancer <- match.data(ps_model.cancer)
+```
+
+```{r}
+t.test(HBV ~ drk_st, data = matched_data.cancer)
+```
+
+결과는 매우 신중하게 보아야 합니다. 왜냐하면 HBV 환자가 데이터에서 아주 적기 때문입니다. 아래의 테이블 분석을 살펴봅시다.
+
+```{r}
+table(cancer$HBV)
+```
+
+관점을 바꾸어서
+
+```{r}
+ps_model.cancer1 <- matchit(
+  HBV ~ sex+age,
+  data=cancer,
+  method='nearest',
+  replace=TRUE
+)
+```
+
+```{r}
+summary(ps_model.cancer1)
+```
+
+```{r}
+matched_data.cancer1 <- match.data(ps_model.cancer1)
+```
+
+```{r}
+t.test(drk_st ~ HBV,data=matched_data.cancer1)
+```
+
+결과는 여전함 ㅋㅋㅋ 가급적 흡연은 자제를!
