@@ -459,3 +459,21 @@ did_es <- aggte(did_att_gt, type="dynamic")
 ggdid(did_es)+geom_line()
 ```
 거의 이벤트를 기점으로 꺽이는 것을 볼 수 있고, 이전과 이후의 과정이 직선에 가깝습니다.
+
+## SUTVA
+
+Stable Unit Treatment Value Assumption (SUTVA)은 실험 디자인과 통계적 모델링에서 사용되는 중요한 가정 중 하나입니다. SUTVA는 주로 두 가지 주요 조건을 포함합니다:
+
+1. **한 유닛의 처리는 다른 유닛에 영향을 미치지 않아야 한다**: 이는 한 연구 참가자가 받는 처리(예: 광고 노출, 약물 투여 등)가 다른 참가자의 결과에 영향을 주지 않아야 한다는 것을 의미합니다. 즉, 각 참가자의 처리와 결과는 독립적이어야 하며, 처리의 효과가 유닛 간에 상호 작용해서는 안 됩니다.
+
+2. **각 유닛은 동일한 방식으로 처리되어야 한다**: 모든 연구 참가자가 '처리'를 받았다면 그 처리는 모든 참가자에게 동일하게 적용되어야 합니다. 예를 들어, 모든 참가자가 광고 캠페인의 동일한 형태의 노출을 받아야 한다는 것을 의미합니다.
+
+SUTVA가 위반되는 경우, 예를 들어 일부 참가자들이 다른 참가자들보다 강화된 또는 다른 형태의 처리를 받거나, 한 참가자의 처리가 다른 참가자에게 간접적인 영향을 주는 상황에서는 연구 결과의 해석이 복잡해질 수 있습니다. 이러한 상황을 예방하고, 연구 결과의 신뢰도를 보장하기 위해 SUTVA를 충족하는 것이 중요합니다.
+
+예를 들어 Aziz, A., Li, H., & Telang, R. (2023). The consequences of rating inflation on platforms: Evidence from a quasi-experiment. Information Systems Research, 34(2), 590-608. 의 논문에서 이 부분을 설명한 것을 봅시다.
+
+```
+Our experiment was designed to minimize potential violations of SUTVA by choosing a relatively isolated contiguous geographic area for treatment so that few users view restaurants from both the treated and control groups. If a user is shown restaurants from both the treated and control groups, they have an intermediate level of treatment, which is a violation of SUTVA. Given that our treatment is imposed at the restaurant-level and not users, we expect some users will see restaurants from both the treated and control groups.
+
+Seeing restaurants with ratings calculated by two different methods might cause users to have unpredictable reactions. Some may shift their purchase toward the treated restaurants, whereas others might question the reliability of the ratings on the platform, especially if it contradicts their prior knowledge about the quality of the restaurants. For example, if a restaurant renowned for its quality is displayed with a low rating because of the method by which it has been calculated, whereas if a mediocre restaurant is displayed with a high rating, users might disregard the rating entirely or may even distrust the platform. We attempted to mitigate this risk by selecting the treated restaurants from a geographically contiguous region that is relatively isolated from the rest of the city. With such a strategy, we attempted to minimize the number of users for whom the 5-km radius contained restaurants from both treated and control groups. Although we could not observe the list of restaurants each customer had available to them, we observed their transactions. We found that only 280 users, or about 0.14% of the total, transacted with restaurants from both the treated and control groups. This suggests that the strategy for isolating the treated users from control group ratings was largely successful. We dropped these users from our analysis.
+```
