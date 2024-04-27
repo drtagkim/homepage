@@ -1,0 +1,11 @@
+---
+title: "fsQCA"
+output: html_notebook
+---
+
+# What is fsQCA
+
+Qualitative Comparative Analysis, 줄여서 QCA는 사회 과학에서 널리 사용되는 연구 방법 중 하나입니다. 이 방법은 다양한 사례들(case studies)을 비교하고 분석하여 공통적인 패턴이나 인과 관계를 찾는 데 주로 사용됩니다. 사례들 간의 비교를 통해 복잡한 현상이나 시스템에서 중요한 요인들을 도출해낼 수 있으며, 특히 한정된 수의 사례들로부터 광범위한 결론을 도출하는 데 유용합니다. QCA는 이진(binary) 또는 다중값(multi-value) 데이터를 사용해 사례들 사이의 관계를 분석하고, 네세서리(necessary) 혹은 서피션트(sufficient) 조건들을 식별하는 데 사용됩니다.
+
+<img src="./fsqca001.png">
+
