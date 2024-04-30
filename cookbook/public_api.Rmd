@@ -1,0 +1,64 @@
+---
+title: "Public API"
+output: html_notebook
+---
+```{r}
+library(dplyr)
+library(httr)
+library(jsonlite)
+```
+
+# Public Data Service_Key
+
+```{r}
+#decoding key
+service_key="IwyTxwaVcL2jPFUhsQdTg0NN22d5uD0PGArotkw1hnziMP4WioZfHMObo6fLyDuzg81zj56j7n2HvhXtnFp+7w=="
+```
+
+
+```{r}
+getData <- function(service_key,page=1) {
+  b=parse_url("https://apis.data.go.kr/B551177/StatusOfPassengerWorldWeatherInfo/getPassengerArrivalsWorldWeather")
+  b$query <- list(
+      serviceKey=service_key,
+      numOfRows=10,
+      pageNo=page,
+      from_time=0000,
+      to_tme=2400,
+      airport='',
+      flight_id='',
+      airline='',
+      lang='K',
+      type='json'
+    )
+  build_url(b)
+}
+```
+
+```{r}
+x=GET(getData(service_key))
+d=content(x,type='text') %>% fromJSON()
+```
+```{r}
+d$response$body$totalCount
+```
+
+```{r}
+total=d$response$body$totalCount
+i=0
+page=1
+library(purrr)
+```
+
+
+```{r}
+dset=list()
+while (i < total) {
+  item = getData(service_key,page=page) %>% GET() %>% content(type='text') %>% fromJSON()
+  items = item$response$body$items
+  dset[[page]]=items
+  page = page + 1
+  i = i + nrow(items)
+}
+```
+
