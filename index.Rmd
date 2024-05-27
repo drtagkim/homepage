@@ -15,4 +15,4 @@ output:
 
 ## R
 
-* [Logging](./tips/r/logging.nb.html)
+* [Logging](./tips/R/logging.nb.html)
