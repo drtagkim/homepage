@@ -1,0 +1,24 @@
+---
+title: "Logging"
+output: html_notebook
+---
+
+```{r, eval=FALSE}
+library(logging)
+
+# 기본 로그 설정
+basicConfig()
+
+# 로그 남기기
+loginfo("This is an info message")
+logwarn("This is a warning message")
+logerror("This is an error message")
+
+# 로그를 파일로 저장
+addHandler(writeToFile, file="log.txt")
+
+loginfo("This log message will be written to the file")
+
+removeHandler(writeToFile)
+```
+
