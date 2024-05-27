@@ -10,3 +10,9 @@ output:
 # 비정형 데이터
 
 * [Text Mining](./index_text_mining.html)
+
+# Tips
+
+## R
+
+* [Logging](./tips/r/logging.nb.html)
